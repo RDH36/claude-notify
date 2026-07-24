@@ -18,6 +18,17 @@
 
 set -u
 
+# Tronque à 60 caractères sur une frontière de mot, avec une ellipse.
+trunc_title() {
+  local t="${1//$'\n'/ }"
+  if (( ${#t} > 60 )); then
+    t="${t:0:59}"
+    [[ "$t" == *" "* ]] && t="${t% *}"
+    t="${t}…"
+  fi
+  printf '%s' "$t"
+}
+
 # --- Lecture de l'entrée du hook -------------------------------------------
 input="$(cat)"
 
@@ -36,8 +47,8 @@ if [[ -z "$message" ]]; then
   message="Claude attend ta réponse"
 fi
 
-# task = message tronqué à 60 caractères.
-task="${message:0:60}"
+# task = message tronqué proprement à 60 caractères.
+task="$(trunc_title "$message")"
 
 # --- Résolution du binaire claude-notify -----------------------------------
 notify_bin=""
@@ -107,7 +118,7 @@ if [[ -n "$transcript" && -r "$transcript" ]]; then
   quick_override="$(printf '%s' "$ctx" | jq -c 'if (.quick | type) == "array" and (.quick | length) > 0 then .quick else empty end' 2>/dev/null || true)"
   task_override="$(printf '%s' "$ctx" | jq -r '.task // empty' 2>/dev/null || true)"
   [[ -n "$quick_override" ]] && quick_json="$quick_override"
-  [[ -n "$task_override" ]] && task="${task_override:0:60}"
+  [[ -n "$task_override" ]] && task="$(trunc_title "$task_override")"
 fi
 [[ -z "$summary_json" ]] && summary_json="[]"
 

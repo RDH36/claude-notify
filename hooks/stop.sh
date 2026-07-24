@@ -18,6 +18,18 @@
 
 set -u
 
+# Tronque à 60 caractères sur une frontière de mot, avec une ellipse —
+# jamais de coupe en plein mot dans le titre de la carte.
+trunc_title() {
+  local t="${1//$'\n'/ }"
+  if (( ${#t} > 60 )); then
+    t="${t:0:59}"
+    [[ "$t" == *" "* ]] && t="${t% *}"
+    t="${t}…"
+  fi
+  printf '%s' "$t"
+}
+
 # --- Lecture de l'entrée du hook -------------------------------------------
 input="$(cat)"
 
@@ -55,9 +67,9 @@ if [[ -s "$summary_file" ]]; then
   line_no=0
   while IFS= read -r line || [[ -n "$line" ]]; do
     if [[ "$line_no" -eq 0 ]]; then
-      # 1re ligne = titre, tronquée à 60 caractères.
+      # 1re ligne = titre, tronquée proprement à 60 caractères.
       if [[ -n "$line" ]]; then
-        task="${line:0:60}"
+        task="$(trunc_title "$line")"
       fi
     else
       # Lignes suivantes = résumé, on en garde au maximum 4.
@@ -91,7 +103,7 @@ if [[ "$task" == "Tâche terminée" && "${#summary_lines[@]}" -eq 0 ]]; then
         end' 2>/dev/null || echo '{}')"
     t="$(printf '%s' "$ctx" | jq -r '.task // empty' 2>/dev/null || true)"
     if [[ -n "$t" ]]; then
-      task="${t:0:60}"
+      task="$(trunc_title "$t")"
       while IFS= read -r line; do
         [[ -n "$line" ]] && summary_lines+=("+ $line")
       done < <(printf '%s' "$ctx" | jq -r '.lines[]? // empty' 2>/dev/null || true)

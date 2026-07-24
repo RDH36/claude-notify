@@ -1,0 +1,8 @@
+# Build Rust/Tauri
+/src-tauri/target/
+/src-tauri/gen/
+
+# Logs et fichiers temporaires
+*.log
+nohup.out
+.claude/

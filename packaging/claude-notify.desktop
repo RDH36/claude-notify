@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=claude-notify
+Comment=Notifications natives pour Claude Code
+Exec=claude-notify --daemon
+Icon=claude-notify
+Terminal=false
+Categories=Utility;
+StartupNotify=false

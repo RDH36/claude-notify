@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "claude-notify",
+  "version": "0.1.0",
+  "identifier": "dev.rdh.claude-notify",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "claude-notify",
+        "width": 540,
+        "height": 420,
+        "visible": false,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "focus": false,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage"],
+    "category": "Utility",
+    "shortDescription": "Notifications natives pour Claude Code",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png"
+    ],
+    "linux": {
+      "deb": {
+        "files": {
+          "/etc/xdg/autostart/claude-notify.desktop": "../packaging/autostart.desktop",
+          "/usr/share/claude-notify/hooks/stop.sh": "../hooks/stop.sh",
+          "/usr/share/claude-notify/hooks/notification.sh": "../hooks/notification.sh"
+        },
+        "depends": ["tmux", "jq"],
+        "recommends": ["wmctrl"]
+      }
+    }
+  }
+}

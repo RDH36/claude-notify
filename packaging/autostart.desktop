@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=claude-notify daemon
+Comment=Démarre le daemon de notifications Claude Code à l'ouverture de session
+Exec=claude-notify --daemon
+Icon=claude-notify
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true

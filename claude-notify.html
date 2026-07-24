@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLAUDE CODE</title>
+
+<!--
+  ?bare=1&status=done&task=…&duration=04:12&close=6000
+  &summary=+ 3 écrans migrés||~ transitions spring||! 1 test à revoir
+  &session=flipia&dir=/home/rdh/dev/flipia
+  &quick=Oui,Non
+  La réponse part vers  POST http://127.0.0.1:7717/reply
+  et retombe sur        claude://reply?text=…  si le daemon est éteint.
+-->
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --void:#04060A; --panel:#080B11; --line:#1B2530; --bone:#DCE4E9; --soft:#8A99A5; --dim:#4E5C68;
+  --ice:#2FD9F0; --amber:#FFB000; --fault:#FF4A3D;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --disp:'Saira Condensed',system-ui,sans-serif;
+  --chamf: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; }
+body{
+  background:var(--void); color:var(--bone); font-family:var(--mono);
+  min-height:100vh; padding:80px 32px; display:grid; align-content:start; gap:34px; justify-items:center;
+}
+body.bare{ background:transparent; padding:0; place-content:center; }
+body.bare .chrome, body.bare .trig, body.bare .demo{ display:none; }
+
+.chrome{ display:flex; gap:14px; align-items:center; width:min(520px,100%); }
+.chrome span{ font-size:9.5px; letter-spacing:.28em; color:var(--dim); }
+.chrome i{ flex:1; height:1px; background:var(--line); }
+
+.trig{ display:flex; border:1px solid var(--line); width:min(520px,100%); }
+.trig button{
+  flex:1; font-family:var(--mono); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase;
+  background:none; color:var(--dim); border:0; border-right:1px solid var(--line); padding:12px 6px; cursor:pointer;
+}
+.trig button:last-child{ border-right:0; }
+.trig button:hover{ background:var(--bone); color:var(--void); }
+.trig button:focus-visible{ outline:1px solid var(--ice); outline-offset:-3px; }
+
+/* ══ notification ═══════════════════════════════════════ */
+.n{
+  --k:var(--ice); width:min(520px,100%);
+  background: color-mix(in srgb, var(--k) 30%, var(--line));
+  padding:1px; clip-path:var(--chamf);
+}
+.n[data-status="hold"] { --k:var(--amber); }
+.n[data-status="fault"]{ --k:var(--fault); }
+.n > .in{
+  position:relative; background:var(--panel); clip-path:var(--chamf);
+  padding:15px 18px; overflow:hidden;
+}
+.n .cut{
+  position:absolute; top:7px; right:7px; width:15px; height:2px; background:var(--k);
+  transform:translate(50%,-50%) rotate(45deg); box-shadow:0 0 10px var(--k);
+}
+.n > .in::after{
+  content:''; position:absolute; left:0; right:0; height:40%; pointer-events:none;
+  background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--k) 10%,transparent),transparent);
+  animation:sweep .8s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes sweep{ from{ top:-40%; } to{ top:110%; opacity:0; } }
+
+.n .top{ display:flex; align-items:center; gap:12px; margin-bottom:7px; }
+.n .st{ font-size:9.5px; letter-spacing:.26em; text-transform:uppercase; color:var(--k); }
+.n .t{ margin-left:auto; font-size:10px; letter-spacing:.12em; color:var(--dim); font-variant-numeric:tabular-nums; }
+.n h2{
+  font-family:var(--disp); font-weight:500; text-transform:uppercase;
+  font-size:21px; line-height:1.1; letter-spacing:.012em; margin:0;
+}
+
+/* résumé — la seule information dense de la carte */
+.n ul{ list-style:none; margin:12px 0 0; padding:0; display:grid; gap:5px; }
+.n li{ display:flex; gap:10px; font-size:11px; line-height:1.55; color:var(--soft); }
+.n li b{ flex:none; width:6px; font-weight:400; color:var(--k); }
+.n li[data-m="~"] b{ color:var(--dim); }
+.n li[data-m="!"] b{ color:var(--fault); }
+
+/* réponses rapides */
+.n .quick{ display:flex; gap:6px; margin-top:12px; }
+.n .quick button{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.18em; text-transform:uppercase;
+  background:none; border:1px solid var(--line); color:var(--soft); padding:7px 14px; cursor:pointer;
+  clip-path:polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  transition:background .12s, color .12s;
+}
+.n .quick button:hover{ background:var(--k); color:var(--void); }
+
+/* champ de réponse */
+.n .reply{
+  display:flex; align-items:center; gap:10px;
+  margin:14px -18px 0; padding:12px 18px; border-top:1px solid var(--line);
+  transition:background .15s;
+}
+.n .reply:focus-within{ background:rgba(255,255,255,.022); }
+.n .reply .caret{ color:var(--k); font-size:12px; line-height:1; }
+.n .reply input{
+  flex:1; min-width:0; background:none; border:0; outline:none; color:var(--bone);
+  font-family:var(--mono); font-size:12px; letter-spacing:.02em; padding:0;
+}
+.n .reply input::placeholder{ color:var(--dim); }
+.n .reply .hint{ font-size:8.5px; letter-spacing:.2em; color:var(--dim); white-space:nowrap; }
+.n .reply[data-state="sending"] .hint{ color:var(--soft); }
+.n .reply[data-state="sent"] .hint{ color:var(--k); }
+.n .reply[data-state="sent"] input{ color:var(--dim); }
+
+/* actions */
+.n .act{ display:flex; gap:1px; background:var(--line); margin:0 -18px -15px; }
+.n .act a{
+  flex:1; text-align:center; text-decoration:none; background:var(--panel); color:var(--dim);
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase;
+  padding:12px 8px; cursor:pointer; transition:background .12s, color .12s;
+}
+.n .act a:hover{ background:var(--bone); color:var(--void); }
+.n .act a.k{ color:var(--k); }
+.n .act a.k:hover{ background:var(--k); color:var(--void); }
+.n .act a:focus-visible{ outline:1px solid var(--k); outline-offset:-3px; }
+.n .reply + .act{ margin-top:0; }
+
+.n .fill{ position:absolute; left:0; bottom:0; height:1px; background:var(--k); width:100%; opacity:.6; }
+
+#live{ position:fixed; right:28px; bottom:28px; z-index:9; display:grid; gap:10px; width:min(520px,calc(100vw - 56px)); }
+#live .n{ width:100%; animation:in .3s cubic-bezier(.2,.9,.2,1) backwards; }
+#live .n.out{ animation:out .2s ease-in forwards; }
+@keyframes in{ from{ transform:translateX(20px); opacity:0; } }
+@keyframes out{ to{ transform:translateX(20px); opacity:0; } }
+body.bare #live{ position:static; width:min(520px,94vw); }
+
+@media (prefers-reduced-motion:reduce){ *{ animation-duration:.001ms !important; transition-duration:.001ms !important; } }
+@media (max-width:640px){ body{ padding:36px 16px; } #live{ right:12px; left:12px; bottom:12px; width:auto; } }
+</style>
+</head>
+<body>
+
+<div class="chrome"><span>CLAUDE CODE</span><i></i><span>REV 04</span></div>
+<div class="trig">
+  <button onclick="demo('done')">Nominal</button>
+  <button onclick="demo('hold')">Attente</button>
+  <button onclick="demo('fault')">Défaut</button>
+</div>
+<div class="demo" id="sample"></div>
+<div id="live" aria-live="polite"></div>
+
+<script>
+const BRIDGE = 'http://127.0.0.1:7717/reply';
+const LABEL  = { done:'terminé', hold:'attente', fault:'défaut' };
+const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/#*';
+
+function decode(el, text, dur = 380){
+  if (matchMedia('(prefers-reduced-motion:reduce)').matches){ el.textContent = text; return; }
+  const t0 = performance.now();
+  (function step(now){
+    const p = Math.min(1,(now-t0)/dur), cut = Math.floor(p*text.length);
+    el.textContent = text.slice(0,cut) + text.slice(cut).replace(/\S/g,
+      () => GLYPHS[Math.floor(Math.random()*GLYPHS.length)]);
+    p < 1 ? requestAnimationFrame(step) : el.textContent = text;
+  })(performance.now());
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const isBare = () => new URLSearchParams(location.search).get('bare') === '1';
+
+/* ── renvoi vers la session Claude Code ───────────────── */
+async function send(el, text){
+  text = text.trim(); if (!text) return;
+  const row = el.querySelector('.reply');
+  row.dataset.state = 'sending';
+  row.querySelector('.hint').textContent = 'ENVOI';
+  try {
+    const r = await fetch(BRIDGE, { method:'POST', headers:{'Content-Type':'text/plain'}, body:text });
+    if (!r.ok) throw new Error();
+  } catch {
+    location.href = 'claude://reply?text=' + encodeURIComponent(text);   // repli sans daemon
+  }
+  row.dataset.state = 'sent';
+  row.querySelector('.hint').textContent = 'ENVOYÉ →';
+  row.querySelector('input').blur();
+  setTimeout(() => dismiss(el), 900);
+}
+
+function render(o = {}){
+  const {
+    status='done', task='Tâche terminée', duration='', timeout=6000,
+    summary=[], quick=[], actions=[], reply=true
+  } = o;
+
+  const el = document.createElement('article');
+  el.className = 'n'; el.dataset.status = status;
+
+  const lines = summary.map(s => {
+    const m = /^([+~!])\s*/.exec(s);
+    return `<li data-m="${m?m[1]:'+'}"><b>${m?m[1]:'+'}</b><span>${esc(s.replace(/^[+~!]\s*/,''))}</span></li>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="in">
+      <div class="cut"></div>
+      <div class="top">
+        <span class="st">${LABEL[status]}</span>
+        <span class="t">${duration ? 'T+'+esc(duration) : ''}</span>
+      </div>
+      <h2></h2>
+      ${lines ? `<ul>${lines}</ul>` : ''}
+      ${quick.length ? `<div class="quick">${quick.map(q =>
+        `<button>${esc(q)}</button>`).join('')}</div>` : ''}
+      ${reply ? `<div class="reply">
+        <span class="caret">›</span>
+        <input type="text" placeholder="Répondre à Claude…" aria-label="Répondre à Claude">
+        <span class="hint">↵</span>
+      </div>` : ''}
+      ${actions.length ? `<div class="act">${actions.map(([l,h],i) =>
+        `<a href="${esc(h)}" class="${i===0?'k':''}">${esc(l)}</a>`).join('')}</div>` : ''}
+      ${timeout ? '<div class="fill"></div>' : ''}
+    </div>`;
+
+  decode(el.querySelector('h2'), task);
+
+  const input = el.querySelector('.reply input');
+  if (input){
+    input.onkeydown = e => { if (e.key === 'Enter') send(el, input.value); };
+    input.onclick = e => e.stopPropagation();
+  }
+  el.querySelectorAll('.quick button').forEach(b =>
+    b.onclick = e => { e.stopPropagation(); send(el, b.textContent); });
+  el.querySelectorAll('.act a').forEach(a =>
+    a.onclick = e => { e.stopPropagation(); if (isBare()) setTimeout(() => window.close(), 400); });
+  el.querySelector('.in').onclick = () => dismiss(el);
+  return el;
+}
+
+function push(o = {}){
+  const el = render(o);
+  document.getElementById('live').prepend(el);
+  const ms = o.timeout === 0 ? 0 : (o.timeout || 6000);
+  if (ms){
+    const f = el.querySelector('.fill');
+    f.style.transition = `width ${ms}ms linear`;
+    requestAnimationFrame(() => f.style.width = '0%');
+    let timer = setTimeout(() => dismiss(el), ms);
+    const hold = () => { clearTimeout(timer); f.style.transition='none'; f.style.width = getComputedStyle(f).width; };
+    el.addEventListener('mouseenter', hold);
+    el.addEventListener('focusin', hold);
+  }
+  return el;
+}
+function dismiss(el){
+  el.classList.add('out');
+  setTimeout(() => {
+    el.remove();
+    if (isBare() && !document.querySelector('#live .n')) window.close();
+  }, 200);
+}
+window.ClaudeNotify = { push };
+
+/* ── démos ────────────────────────────────────────────── */
+const DEMOS = {
+  done: {
+    status:'done', task:"Écran de deck refait", duration:'04:12',
+    summary:[
+      "+ 3 écrans migrés vers Reanimated 3",
+      "+ transitions de cartes en spring (damping 14)",
+      "~ DeckScreen découpé en 2 composants",
+      "! 1 snapshot de test à régénérer",
+    ],
+    actions:[['Terminal','claude://focus'],['Zed','claude://zed']],
+  },
+  hold: {
+    status:'hold', task:"Supprimer la table sessions ?", timeout:0,
+    summary:[
+      "~ la migration efface 1 240 lignes",
+      "~ aucun backup automatique n'est prévu",
+      "! rien n'est appliqué avant ta réponse",
+    ],
+    quick:['Oui','Non','Fais un dump avant'],
+    actions:[['Terminal','claude://focus']],
+  },
+  fault: {
+    status:'fault', task:"Build interrompu", duration:'01:51',
+    summary:[
+      "! module introuvable — reanimated/plugin",
+      "~ 3 tentatives, cache metro vidé 2 fois",
+      "+ babel.config.js laissé intact",
+    ],
+    timeout:0,
+    actions:[['Terminal','claude://focus'],['Log','claude://log'],['Zed','claude://zed']],
+  },
+};
+function demo(k){ push({...DEMOS[k]}); }
+document.getElementById('sample').append(render({...DEMOS.done, timeout:0}));
+
+/* ── mode bare ────────────────────────────────────────── */
+(function fromURL(){
+  const p = new URLSearchParams(location.search);
+  if (!isBare()) return;
+  document.body.classList.add('bare');
+  const map = { done:'done', ok:'done', input:'hold', hold:'hold', failed:'fault', fault:'fault', running:'hold' };
+  const status = map[p.get('status')] || 'done';
+  const acts = (p.get('actions') || '').split(',').filter(Boolean).map(s => s.split('|'));
+  push({
+    status,
+    task:     p.get('task') || 'Tâche terminée',
+    duration: p.get('duration') || '',
+    summary:  (p.get('summary') || '').split('||').filter(Boolean),
+    quick:    (p.get('quick') || '').split(',').filter(Boolean),
+    timeout:  Number(p.get('close') || 0),
+    actions:  acts.length ? acts : [
+      ['Terminal','claude://focus?session=' + encodeURIComponent(p.get('session') || '')],
+      ['Zed','claude://zed?dir='            + encodeURIComponent(p.get('dir') || '')],
+    ],
+  });
+})();
+</script>
+</body>
+</html>

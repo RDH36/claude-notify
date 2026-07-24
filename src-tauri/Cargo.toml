@@ -1,0 +1,35 @@
+[package]
+name = "claude-notify"
+version = "0.1.0"
+description = "Notification native Ubuntu pour Claude Code : résumé de fin de tâche et réponse sans quitter la fenêtre courante"
+authors = ["Raymond"]
+license = "MIT"
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# Binaire < 15 Mo (§4) : on optimise la release pour la taille
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+opt-level = "s"
+panic = "abort"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "claude_notify_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+log = "0.4"
+tauri = { version = "2.11.3", features = [] }
+tauri-plugin-log = "2"
+tauri-plugin-single-instance = "2"

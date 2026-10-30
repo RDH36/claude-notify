@@ -11,20 +11,40 @@ pub fn open_target(
     target: String,
     dir: String,
     tmux: Option<String>,
+    herdr_pane: Option<String>,
     config: State<'_, Config>,
     session: State<'_, SessionType>,
 ) -> Result<(), String> {
     match target.as_str() {
+        // herdr : focus du pane, puis fenêtre du terminal qui affiche herdr
+        "terminal" if non_empty(&herdr_pane).is_some() => {
+            bridge::herdr::focus(non_empty(&herdr_pane).unwrap_or_default())?;
+            if !bridge::terminal_focus_available(config.terminal_focus, *session.inner()) {
+                return Ok(());
+            }
+            match config.terminal_focus {
+                crate::config::TerminalFocus::Wmctrl => {
+                    bridge::focus_herdr_window(*session.inner(), &config.terminal_class)
+                }
+                m => bridge::focus_terminal(m, *session.inner(), "herdr", &config.terminal_class),
+            }
+        }
         "terminal" => bridge::focus_terminal(
             config.terminal_focus,
             *session.inner(),
             tmux.as_deref().unwrap_or(&config.tmux_session),
             &config.terminal_class,
         ),
+        "zed" if config.editor.trim().is_empty() => Err("aucun éditeur configuré".into()),
         "zed" => bridge::open_editor(&config.editor, &dir),
         "log" => bridge::open_log(&dir),
         other => Err(format!("cible inconnue : {other}")),
     }
+}
+
+/// Valeur optionnelle non vide (le front envoie `null` ou `""` hors herdr).
+fn non_empty(v: &Option<String>) -> Option<&str> {
+    v.as_deref().map(str::trim).filter(|s| !s.is_empty())
 }
 
 /// Appelé par le front une fois ses écouteurs posés : rejoue les push
@@ -46,10 +66,7 @@ pub fn front_ready(app: tauri::AppHandle, inbox: State<'_, crate::daemon::Inbox>
 
 /// Infos d'environnement pour le front (masquage du bouton Terminal, §10).
 #[tauri::command]
-pub fn env_info(
-    config: State<'_, Config>,
-    session: State<'_, SessionType>,
-) -> serde_json::Value {
+pub fn env_info(config: State<'_, Config>, session: State<'_, SessionType>) -> serde_json::Value {
     let session = *session.inner();
     serde_json::json!({
         "session_type": match session {
@@ -67,8 +84,12 @@ pub fn env_info(
 pub fn reply(
     text: String,
     session: Option<String>,
+    herdr_pane: Option<String>,
     config: State<'_, Config>,
 ) -> Result<(), String> {
+    if let Some(pane) = non_empty(&herdr_pane) {
+        return bridge::herdr::reply(pane, &text);
+    }
     let session = session
         .filter(|s| !s.trim().is_empty())
         .unwrap_or_else(|| config.tmux_session.clone());
@@ -81,8 +102,12 @@ pub fn reply(
 pub fn reply_keys(
     keys: Vec<String>,
     session: Option<String>,
+    herdr_pane: Option<String>,
     config: State<'_, Config>,
 ) -> Result<(), String> {
+    if let Some(pane) = non_empty(&herdr_pane) {
+        return bridge::herdr::reply_keys(pane, &keys);
+    }
     let session = session
         .filter(|s| !s.trim().is_empty())
         .unwrap_or_else(|| config.tmux_session.clone());

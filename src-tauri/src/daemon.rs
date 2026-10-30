@@ -66,6 +66,8 @@ fn handle_client(app: &AppHandle, stream: UnixStream) {
         }
         match serde_json::from_str::<IpcMessage>(&line) {
             Ok(IpcMessage::Push { payload }) => {
+                let webhook = &app.state::<crate::config::Config>().discord_webhook;
+                crate::bridge::discord::post(webhook, &payload);
                 if let Some(w) = app.get_webview_window("main") {
                     let _ = w.show();
                 }

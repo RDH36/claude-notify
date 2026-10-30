@@ -62,7 +62,7 @@ Champs du payload : `status` (`done`|`hold`|`fault`, requis), `task` (requis, �
 
 ```toml
 tmux_session   = "claude"     # session tmux par défaut pour la réponse
-editor         = "zed"        # commande lancée par le bouton Zed
+editor         = "zed"        # bouton éditeur ; "" = bouton masqué
 terminal_focus = "wmctrl"     # wmctrl | kitty | wezterm | none
 terminal_class = ""           # classe/titre de fenêtre à focaliser (vide = auto)
 position       = "bottom-right"  # bottom-right | top-right
@@ -70,7 +70,35 @@ margin_bottom  = 48           # distance carte ↔ bas de l'écran (px)
 margin_top     = 48           # distance carte ↔ haut de l'écran (top-right)
 default_timeout = 6000        # ms
 max_stack      = 3            # cartes affichées au maximum
+discord_webhook = ""          # URL de webhook Discord ; "" = désactivé
 ```
+
+## Avec herdr
+
+Dans un pane [herdr](https://herdr.dev) (`HERDR_ENV=1`), les hooks ajoutent
+`herdr_pane` (= `$HERDR_PANE_ID`) au payload. La carte s'en sert à la place de tmux :
+
+- **Réponse** : le statut est lu d'abord (`herdr agent get <pane>`), avant tout envoi.
+  Agent prêt → `herdr agent prompt <pane> <texte>`. Agent sur un dialogue
+  (statut `blocked` : permission, question) → rien n'est tapé, la carte affiche
+  « l'agent attend une réponse au dialogue : utilise les puces ou Ouvrir »
+  (sinon Entrée validerait l'option surlignée). Seul un pane sans agent reconnu
+  (`agent_not_found`, ex. un shell) reçoit la saisie brute `herdr pane send-text`
+  + `enter`. Les puces de permission passent par `herdr agent send-keys` (`1`, `esc`).
+- **Ouvrir** : `herdr agent focus <pane>`, puis mise au premier plan de la
+  fenêtre du terminal qui affiche herdr (wmctrl).
+- Sans `herdr_pane`, le chemin tmux reste inchangé.
+
+Le daemon cherche `herdr` dans le `PATH`, sinon dans `~/.local/bin`.
+
+## Discord
+
+Renseigner `discord_webhook` (Paramètres du salon → Intégrations → Webhooks)
+recopie chaque notification (fin de tâche, attente, erreur) dans le salon :
+titre, résumé, projet et statut. L'envoi passe par `curl` dans un thread
+détaché (timeout 5 s) : il ne bloque ni le hook ni la carte. L'URL est passée
+à curl sur stdin et n'apparaît jamais dans les logs. Redémarrer le daemon
+après modification de la config.
 
 ## Interactions
 
@@ -80,7 +108,7 @@ max_stack      = 3            # cartes affichées au maximum
 | Puces rapides (`Oui`, `Non`, …) | envoient la réponse en un clic |
 | `✕` en haut à droite ou `Échap` | ferme la carte |
 | Survol / focus clavier | met le compte à rebours en pause |
-| Terminal / Zed | refocalise le terminal / ouvre le dossier dans l'éditeur |
+| Terminal / Ouvrir / Zed | refocalise le terminal (ou le pane herdr) / ouvre le dossier dans l'éditeur |
 
 ## Limitations connues
 

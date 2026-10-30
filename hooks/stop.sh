@@ -117,6 +117,12 @@ if [[ -n "${TMUX:-}" ]]; then
   session="$(tmux display-message -p '#S' 2>/dev/null || true)"
 fi
 
+# --- Détection du pane herdr (prioritaire sur tmux pour la réponse) ----------
+herdr_pane=""
+if [[ "${HERDR_ENV:-}" == "1" && "${HERDR_PANE_ID:-}" =~ ^[A-Za-z0-9_][A-Za-z0-9:_-]*$ ]]; then
+  herdr_pane="$HERDR_PANE_ID"
+fi
+
 # --- Construction du payload JSON (jamais d'interpolation shell brute) ------
 # Le tableau summary est passé à jq via des arguments positionnels sûrs.
 jq_args=(-n
@@ -140,6 +146,10 @@ fi
 if [[ -n "$session" ]]; then
   jq_args+=(--arg session "$session")
   filter="$filter + {session: \$session}"
+fi
+if [[ -n "$herdr_pane" ]]; then
+  jq_args+=(--arg herdr_pane "$herdr_pane")
+  filter="$filter + {herdr_pane: \$herdr_pane}"
 fi
 
 payload="$(jq "${jq_args[@]}" "$filter" 2>/dev/null || true)"

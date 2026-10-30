@@ -43,17 +43,15 @@ async function dispatchReply(el, action){
   }
 }
 
+const target = el => /* pane herdr si présent, sinon session tmux */ ({ session: el.dataset.session || null, herdrPane: el.dataset.herdr || null });
+
 function send(el, text){
   text = text.trim(); if (!text) return;
-  dispatchReply(el, () =>
-    invoke('reply', { text, session: el.dataset.session || null }));
+  dispatchReply(el, () => invoke('reply', { text, ...target(el) }));
 }
 
 /* touches TUI brutes (dialogue de permission : 1 accepte, Échap refuse) */
-function sendKeys(el, keys){
-  dispatchReply(el, () =>
-    invoke('reply_keys', { keys, session: el.dataset.session || null }));
-}
+const sendKeys = (el, keys) => dispatchReply(el, () => invoke('reply_keys', { keys, ...target(el) }));
 
 function render(o = {}){
   const {
@@ -65,6 +63,7 @@ function render(o = {}){
   el.className = 'n'; el.dataset.status = status;
   if (o.id) el.dataset.id = o.id;
   if (o.session) el.dataset.session = o.session;
+  if (o.herdr) el.dataset.herdr = o.herdr;
   if (o.dir) el.dataset.dir = o.dir;
 
   /* une puce est un texte simple ou un objet {label, keys} */
@@ -118,6 +117,7 @@ function render(o = {}){
         target: a.dataset.target,
         dir: el.dataset.dir || '',
         tmux: el.dataset.session || null,
+        herdrPane: el.dataset.herdr || null,
       }).catch(err => {
         const hint = el.querySelector('.reply .hint');
         if (hint){ hint.classList.add('err'); hint.textContent = String(err); }
@@ -226,12 +226,14 @@ window.ClaudeNotify = { push };
    quand aucune méthode de focus n'est disponible (§10) */
 function fromPayload(p){
   const actions = [];
-  if (ENV.terminal_focus_available) actions.push(['Terminal', 'terminal']);
-  if (p.dir) actions.push(['Zed', 'zed']);
+  if (p.herdr_pane) actions.push(['Ouvrir', 'terminal']);
+  else if (ENV.terminal_focus_available) actions.push(['Terminal', 'terminal']);
+  const ed = (CONFIG.editor || '').trim();  /* éditeur optionnel : vide = masqué */
+  if (p.dir && ed) actions.push([/zed/i.test(ed) ? 'Zed' : ed.split('/').pop(), 'zed']);
   return {
     id: p.id, status: p.status, task: p.task, duration: p.duration || '',
     summary: p.summary || [], quick: p.quick || [],
-    session: p.session, dir: p.dir, timeout: p.timeout, actions,
+    session: p.session, herdr: p.herdr_pane, dir: p.dir, timeout: p.timeout, actions,
   };
 }
 

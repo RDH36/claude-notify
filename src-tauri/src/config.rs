@@ -9,10 +9,11 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 /// Stratégie de focus du terminal au clic sur une notification.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TerminalFocus {
     /// Focus via `wmctrl` (X11, défaut).
+    #[default]
     Wmctrl,
     /// Focus via le protocole de contrôle distant de Kitty.
     Kitty,
@@ -20,12 +21,6 @@ pub enum TerminalFocus {
     Wezterm,
     /// Aucune tentative de focus.
     None,
-}
-
-impl Default for TerminalFocus {
-    fn default() -> Self {
-        TerminalFocus::Wmctrl
-    }
 }
 
 /// Configuration de l'application, désérialisée depuis le TOML.
@@ -53,6 +48,10 @@ pub struct Config {
     pub default_timeout: u32,
     /// Nombre maximum de notifications empilées simultanément.
     pub max_stack: usize,
+    /// Webhook Discord où recopier chaque notification (vide = désactivé).
+    /// Secret : jamais renvoyé au front.
+    #[serde(skip_serializing)]
+    pub discord_webhook: String,
 }
 
 impl Default for Config {
@@ -67,6 +66,7 @@ impl Default for Config {
             margin_top: default_margin_top(),
             default_timeout: default_timeout(),
             max_stack: default_max_stack(),
+            discord_webhook: String::new(),
         }
     }
 }
@@ -99,6 +99,7 @@ impl Config {
     ///
     /// - Fichier absent → défauts, silencieusement.
     /// - TOML invalide → log stderr + défauts.
+    ///
     /// Ne panique jamais : le daemon doit toujours démarrer (§14).
     pub fn load() -> Config {
         let path = match config_path() {

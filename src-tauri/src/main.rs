@@ -4,13 +4,13 @@
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
-  // Les sous-commandes CLI (push/dismiss/--help) s'exécutent et sortent sans
-  // démarrer Tauri ; seul `--daemon` (ou aucun argument) lance l'app.
-  match claude_notify_lib::cli::dispatch() {
-    claude_notify_lib::cli::Route::Daemon => {
-      claude_notify_lib::run();
-      ExitCode::SUCCESS
+    // Les sous-commandes CLI (push/dismiss/--help) s'exécutent et sortent sans
+    // démarrer Tauri ; seul `--daemon` (ou aucun argument) lance l'app.
+    match claude_notify_lib::cli::dispatch() {
+        claude_notify_lib::cli::Route::Daemon => {
+            claude_notify_lib::run();
+            ExitCode::SUCCESS
+        }
+        claude_notify_lib::cli::Route::Exit(code) => ExitCode::from(code),
     }
-    claude_notify_lib::cli::Route::Exit(code) => ExitCode::from(code),
-  }
 }

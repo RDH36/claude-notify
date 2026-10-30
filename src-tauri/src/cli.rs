@@ -38,6 +38,9 @@ pub struct Payload {
     pub quick: Option<Vec<Quick>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub session: Option<String>,
+    /// Pane herdr de l'agent (`HERDR_PANE_ID`), prioritaire sur `session`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub herdr_pane: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dir: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -70,6 +73,8 @@ impl Payload {
 /// `{"cmd":"push","payload":{…}}` ou `{"cmd":"dismiss_all"}`.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
+// Message unique et éphémère sur le socket : pas de Box pour si peu.
+#[allow(clippy::large_enum_variant)]
 pub enum IpcMessage {
     Push { payload: Payload },
     DismissAll,

@@ -52,6 +52,12 @@ pub struct Config {
     /// Secret : jamais renvoyé au front.
     #[serde(skip_serializing)]
     pub discord_webhook: String,
+    /// Fichier de vie du Veilleur (`~` = $HOME ; "" = désactivé).
+    #[serde(skip_serializing)]
+    pub veilleur_file: String,
+    /// Âge maximal (s) du fichier pour considérer le Veilleur vivant.
+    #[serde(skip_serializing)]
+    pub veilleur_max_age: u64,
 }
 
 impl Default for Config {
@@ -67,6 +73,8 @@ impl Default for Config {
             default_timeout: default_timeout(),
             max_stack: default_max_stack(),
             discord_webhook: String::new(),
+            veilleur_file: "~/.cache/claude-notify/veilleur-alive".to_string(),
+            veilleur_max_age: 600,
         }
     }
 }

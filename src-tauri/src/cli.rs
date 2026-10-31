@@ -45,6 +45,9 @@ pub struct Payload {
     pub dir: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeout: Option<u32>,
+    /// Nature de la carte (`"permission"` pour un dialogue oui/non).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
 }
 
 /// Puce rapide : simple texte (envoyé au prompt + Entrée), ou touches TUI

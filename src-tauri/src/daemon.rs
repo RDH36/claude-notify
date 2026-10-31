@@ -66,8 +66,14 @@ fn handle_client(app: &AppHandle, stream: UnixStream) {
         }
         match serde_json::from_str::<IpcMessage>(&line) {
             Ok(IpcMessage::Push { payload }) => {
-                let webhook = &app.state::<crate::config::Config>().discord_webhook;
-                crate::bridge::discord::post(webhook, &payload);
+                let config = app.state::<crate::config::Config>();
+                crate::bridge::discord::post(&config.discord_webhook, &payload);
+                let (fichier, max_age) = (&config.veilleur_file, config.veilleur_max_age);
+                if crate::bridge::veilleur::doit_masquer(payload.kind.as_deref(), fichier, max_age)
+                {
+                    eprintln!("claude-notify: carte de permission masquée : Veilleur actif");
+                    continue;
+                }
                 if let Some(w) = app.get_webview_window("main") {
                     let _ = w.show();
                 }

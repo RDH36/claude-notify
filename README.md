@@ -71,7 +71,19 @@ margin_top     = 48           # distance carte ↔ haut de l'écran (top-right)
 default_timeout = 6000        # ms
 max_stack      = 3            # cartes affichées au maximum
 discord_webhook = ""          # URL de webhook Discord ; "" = désactivé
+veilleur_file  = "~/.cache/claude-notify/veilleur-alive"  # "" = désactivé
+veilleur_max_age = 600        # s : au-delà, le Veilleur est considéré en panne
 ```
+
+## Avec le Veilleur
+
+Le Veilleur (agent distant qui valide les demandes de permission) touche
+`veilleur_file` à chaque tour. Tant que ce fichier a moins de `veilleur_max_age`
+secondes (ou une date dans le futur), les cartes de **permission** ne sont pas
+affichées (ligne « carte de permission masquée : Veilleur actif » dans le log
+du daemon). Fichier absent ou trop vieux → les cartes reviennent, sans
+redémarrage (le fichier est relu à chaque notification). Les autres cartes
+(fin de tâche, attente, question, erreur) et la copie Discord ne changent pas.
 
 ## Avec herdr
 

@@ -3,6 +3,7 @@
 pub mod discord;
 pub mod herdr;
 mod tmux;
+pub mod veilleur;
 
 pub use tmux::{tmux_reply, tmux_reply_keys};
 

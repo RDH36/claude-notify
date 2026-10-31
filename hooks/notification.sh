@@ -151,6 +151,9 @@ if [[ -n "$session" ]]; then
   jq_args+=(--arg session "$session")
   filter="$filter + {session: \$session}"
 fi
+if [[ "$is_permission" -eq 1 ]]; then
+  filter="$filter + {kind: \"permission\"}"
+fi
 if [[ -n "$herdr_pane" ]]; then
   jq_args+=(--arg herdr_pane "$herdr_pane")
   filter="$filter + {herdr_pane: \$herdr_pane}"
